@@ -60,8 +60,9 @@ namespace BetterWaywo
 
             posts = posts.OrderByDescending(p => p.Value)
                          .Take(postCount * 2)                       // lets not read every posts' contents
+                         .Where(p => p.HasContent)                  // ignore posts with no content
                          .OrderByDescending(p => p.Value)
-                         .ThenByDescending(p => p.Contents.Length)
+                         .ThenByDescending(p => p.Message.Length)
                          .Distinct(new PostUsernameComparer())      // one highlight per person
                          .Take(postCount)
                          .ToList();
@@ -72,13 +73,13 @@ namespace BetterWaywo
                 {
                     foreach (var p in posts)
                     {
-                        if (p.Contents.Length == 0)
+                        if (p.Message.Length == 0)
                         {
                             Console.WriteLine("Failed to read post contents");
                             return;
                         }
 
-                        writer.Write(p.Contents);
+                        writer.Write(p.Message);
                         writer.WriteLine();
                         writer.WriteLine();
                     }

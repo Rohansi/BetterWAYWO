@@ -47,7 +47,7 @@ namespace BetterWaywo
         {
             var html = GetHtmlDocument(string.Format(ThreadPageString, Program.ThreadId, 1));
             var lastPageUrl = html.DocumentNode.SelectSingleNode("//div[@id='pagination_top']//span[@class='first_last']/a").Attributes["href"].Value;
-            var lastPage = Regex.Match(lastPageUrl, "page=(\\d+)").Groups[1].Value;
+            var lastPage = Regex.Match(lastPageUrl, @"page=(\d+)").Groups[1].Value;
             return int.Parse(lastPage);
         }
 

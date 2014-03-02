@@ -10,8 +10,9 @@ namespace BetterWaywo
 {
     class Post
     {
-        private string _contents;
+        private string _message;
         private string _username;
+        private bool? _hasContent;
 
         public readonly int Id;
         public readonly Dictionary<string, int> Ratings;
@@ -24,13 +25,13 @@ namespace BetterWaywo
             }
         }
 
-        public string Contents
+        public string Message
         {
             get
             {
-                if (_contents == null)
-                    _contents = GetPostContents(Id);
-                return _contents;
+                if (_message == null)
+                    _message = GetPostContents(Id);
+                return _message;
             }
         }
 
@@ -39,16 +40,30 @@ namespace BetterWaywo
             get
             {
                 if (_username == null)
-                    _username = Regex.Match(Contents, "\\[QUOTE=(.*?);").Groups[1].Value;
+                    _username = Regex.Match(Message, @"\[QUOTE=(.*?);").Groups[1].Value;
                 return _username;
             }
         }
+
+        public bool HasContent
+        {
+            get
+            {
+                if (!_hasContent.HasValue)
+                    _hasContent = ContentRegex.IsMatch(Message);
+                return _hasContent.Value;
+            }
+        }
+
+        private static readonly Regex ContentRegex = new Regex(@"\[(img|vid|media|video)[^\]]*?\][^\[\]]*?\[/\1\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public Post(int id, Dictionary<string, int> ratings)
         {
             Id = id;
             Ratings = ratings;
-            _contents = null;
+            _message = null;
+            _username = null;
+            _hasContent = null;
         }
 
         private static string GetPostContents(int postId)
