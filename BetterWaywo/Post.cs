@@ -10,6 +10,7 @@ namespace BetterWaywo
 {
     class Post
     {
+        private float? _value;
         private string _message;
         private string _username;
         private bool? _hasContent;
@@ -21,7 +22,9 @@ namespace BetterWaywo
         {
             get
             {
-                return Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
+                if (!_value.HasValue)
+                    _value = Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
+                return _value.Value;
             }
         }
 
@@ -61,6 +64,8 @@ namespace BetterWaywo
         {
             Id = id;
             Ratings = ratings;
+
+            _value = null;
             _message = null;
             _username = null;
             _hasContent = null;

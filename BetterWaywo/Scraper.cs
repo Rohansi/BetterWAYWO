@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
@@ -20,24 +21,41 @@ namespace BetterWaywo
             {
                 Console.WriteLine("Scraping page {0}", page);
 
-                var html = GetHtmlDocument(string.Format(ThreadPageString, Program.ThreadId, page));
-                var postElements = html.DocumentNode.SelectNodes("//ol[@id='posts']//span[@class='rating_results']");
-
-                foreach (var p in postElements)
+                try
                 {
-                    var id = int.Parse(Regex.Match(p.Attributes["id"].Value, "rating_(\\d+)").Groups[1].Value);
-                    var ratings = new Dictionary<string, int>();
+                    var html = GetHtmlDocument(string.Format(ThreadPageString, Program.ThreadId, page));
+                    var postElements = html.DocumentNode.SelectNodes("//ol[@id='posts']//span[@class='rating_results']");
+                    var first = true;
 
-                    foreach (var r in p.Elements("span"))
+                    foreach (var p in postElements)
                     {
-                        var ratingType = r.Element("img").Attributes["alt"].Value;
-                        var ratingValue = int.Parse(r.Element("strong").InnerText);
-                        ratings.Add(ratingType, ratingValue);
-                    }
+                        if (page <= 1 && first)
+                        {
+                            first = false;
+                            continue;
+                        }
 
-                    lock (posts)
-                        posts.Add(new Post(id, ratings));
+                        var id = int.Parse(Regex.Match(p.Attributes["id"].Value, "rating_(\\d+)").Groups[1].Value);
+                        var ratings = new Dictionary<string, int>();
+
+                        foreach (var r in p.Elements("span"))
+                        {
+                            var ratingType = r.Element("img").Attributes["alt"].Value;
+                            var ratingValue = int.Parse(r.Element("strong").InnerText);
+                            ratings.Add(ratingType, ratingValue);
+                        }
+
+                        lock (posts)
+                            posts.Add(new Post(id, ratings));
+                    }
                 }
+                catch
+                {
+                    Console.WriteLine("Failed to scrape page {0}, ignoring", page);
+                }
+
+                if (pageCount >= 50)
+                    Thread.Sleep(2500); // be nice
             });
 
             return posts;
@@ -57,7 +75,7 @@ namespace BetterWaywo
 
             var request = (HttpWebRequest)WebRequest.Create(address);
             request.KeepAlive = true;
-            request.Timeout = 5000;
+            request.Timeout = 15000;
 
             using (var response = request.GetResponse())
             using (var reader = new StreamReader(response.GetResponseStream(), Program.FacepunchEncoding))

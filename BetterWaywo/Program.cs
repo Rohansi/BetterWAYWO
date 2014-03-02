@@ -41,6 +41,7 @@ namespace BetterWaywo
             try
             {
                 pageCount = Scraper.GetPageCount();
+                Console.WriteLine("Thread has {0} pages", pageCount);
             }
             catch
             {
@@ -61,8 +62,6 @@ namespace BetterWaywo
             posts = posts.OrderByDescending(p => p.Value)
                          .Take(postCount * 2)                       // lets not read every posts' contents
                          .Where(p => p.HasContent)                  // ignore posts with no content
-                         .OrderByDescending(p => p.Value)
-                         .ThenByDescending(p => p.Message.Length)
                          .Distinct(new PostUsernameComparer())      // one highlight per person
                          .Take(postCount)
                          .ToList();
