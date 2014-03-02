@@ -1,33 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace BetterWaywo
 {
     class Post
     {
-        private float? _value;
+        private static readonly Regex ContentRegex = new Regex(@"\[(img|vid|media|video)[^\]]*?\]([^\[\]]*?)\[/\1\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private float? _ratingsValue;
+        private float? _contentValue;
         private string _message;
         private string _username;
-        private bool? _hasContent;
 
         public readonly int Id;
         public readonly Dictionary<string, int> Ratings;
 
-        public float Value
+        [JsonIgnore]
+        public float RatingsValue
         {
             get
             {
-                if (!_value.HasValue)
-                    _value = Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
-                return _value.Value;
+                if (!_ratingsValue.HasValue)
+                    _ratingsValue = Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
+                return _ratingsValue.Value;
             }
         }
 
+        [JsonIgnore]
+        public float ContentValue
+        {
+            get
+            {
+                if (!_contentValue.HasValue)
+                    _contentValue = GetContentValue(Message);
+                return _contentValue.Value;
+            }
+        }
+
+        [JsonIgnore]
         public string Message
         {
             get
@@ -38,6 +55,7 @@ namespace BetterWaywo
             }
         }
 
+        [JsonIgnore]
         public string Username
         {
             get
@@ -48,27 +66,83 @@ namespace BetterWaywo
             }
         }
 
+        [JsonIgnore]
         public bool HasContent
         {
             get
             {
-                if (!_hasContent.HasValue)
-                    _hasContent = ContentRegex.IsMatch(Message);
-                return _hasContent.Value;
+                return ContentValue > 0;
             }
         }
-
-        private static readonly Regex ContentRegex = new Regex(@"\[(img|vid|media|video)[^\]]*?\][^\[\]]*?\[/\1\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public Post(int id, Dictionary<string, int> ratings)
         {
             Id = id;
             Ratings = ratings;
 
-            _value = null;
+            _ratingsValue = null;
+            _contentValue = null;
             _message = null;
             _username = null;
-            _hasContent = null;
+        }
+
+        public static float GetContentValue(string message)
+        {
+            float result = 0;
+
+            var contentTags = ContentRegex.Matches(message);
+            foreach (var tag in contentTags.Cast<Match>())
+            {
+                switch (tag.Groups[1].Value.ToLower())
+                {
+                    case "img":
+                    {
+                        var isGif = false;
+
+                        Uri uri;
+                        if (Uri.TryCreate(tag.Groups[2].Value, UriKind.Absolute, out uri))
+                            isGif = Path.GetExtension(uri.LocalPath).ToLower() == ".gif";
+
+                        if (isGif)
+                            result += 1.0f;
+                        else
+                            result += 0.5f;
+
+                        break;
+                    }
+
+                    case "vid":
+                    case "media":
+                    case "video":
+                        result += 1.0f;
+                        break;
+                }
+            }
+
+            if (result > 1)
+                result = 1;
+
+            return result;
+        }
+
+        private static float GetRatingValue(string rating)
+        {
+            switch (rating)
+            {
+                case "Programming King":
+                case "Lua King":
+                    return 3.0f;
+                case "Winner":
+                case "Useful":
+                case "Artistic":
+                case "Lua Helper":
+                    return 2.0f;
+                case "Funny":
+                case "Informative":
+                    return 1.0f;
+                default:
+                    return -1.0f; // "junk" ratings
+            }
         }
 
         private static string GetPostContents(int postId)
@@ -101,26 +175,6 @@ namespace BetterWaywo
                 }
 
                 return result.ToString().Trim();
-            }
-        }
-
-        private static float GetRatingValue(string rating)
-        {
-            switch (rating)
-            {
-                case "Programming King":
-                case "Lua King":
-                    return 3.0f;
-                case "Winner":
-                case "Useful":
-                case "Artistic":
-                case "Lua Helper":
-                    return 2.0f;
-                case "Funny":
-                case "Informative":
-                    return 1.0f;
-                default:
-                    return -1.0f; // "junk" ratings
             }
         }
     }

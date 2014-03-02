@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace BetterWaywo
 {
@@ -59,9 +60,14 @@ namespace BetterWaywo
                 return;
             }
 
-            posts = posts.OrderByDescending(p => p.Value)
+            /*var postsJson = JsonConvert.SerializeObject(posts);
+            File.WriteAllText("posts.json", postsJson);*/
+
+            //posts = JsonConvert.DeserializeObject<List<Post>>(File.ReadAllText("posts.json"));
+
+            posts = posts.OrderByDescending(p => p.RatingsValue)
                          .Take(postCount * 2)                       // lets not read every posts' contents
-                         .Where(p => p.HasContent)                  // ignore posts with no content
+                         .OrderByDescending(p =>  p.RatingsValue * p.ContentValue)
                          .Distinct(new PostUsernameComparer())      // one highlight per person
                          .Take(postCount)
                          .ToList();
