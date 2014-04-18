@@ -45,6 +45,22 @@ namespace BetterWaywo
         }
 
         [JsonIgnore]
+        public float ContentMultiplier
+        {
+            get
+            {
+                const double height = 0.5;
+                const double minimum = 0.5;
+                const double preferredValue = 1.5;
+                const double standardDeviation = 4.0; // preferredValue +/- standardDeviation = ~60% 
+
+                var res = height * Math.Exp(-(Math.Pow(ContentValue - preferredValue, 2) / (2 * Math.Pow(standardDeviation, 2f)))) + minimum;
+                //Console.WriteLine("{0} -> {1:R}", ContentValue, res);
+
+                return (float)res;
+            }
+        }
+
         public string Message
         {
             get
@@ -52,6 +68,10 @@ namespace BetterWaywo
                 if (_message == null)
                     _message = GetPostContents(Id);
                 return _message;
+            }
+            set
+            {
+                _message = value;
             }
         }
 
@@ -86,9 +106,14 @@ namespace BetterWaywo
             _username = null;
         }
 
+        public bool ShouldSerializeMessage()
+        {
+            return _message != null;
+        }
+
         public static float GetContentValue(string message)
         {
-            float result = 0;
+            float value = 0;
 
             var contentTags = ContentRegex.Matches(message);
             foreach (var tag in contentTags.Cast<Match>())
@@ -104,9 +129,9 @@ namespace BetterWaywo
                             isGif = Path.GetExtension(uri.LocalPath).ToLower() == ".gif";
 
                         if (isGif)
-                            result += 1.0f;
+                            value += 1.50f;
                         else
-                            result += 0.5f;
+                            value += 1.00f;
 
                         break;
                     }
@@ -114,15 +139,12 @@ namespace BetterWaywo
                     case "vid":
                     case "media":
                     case "video":
-                        result += 1.0f;
+                        value += 2.00f;
                         break;
                 }
             }
 
-            if (result > 1)
-                result = 1;
-
-            return result;
+            return value;
         }
 
         private static float GetRatingValue(string rating)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using NDesk.Options;
 using Newtonsoft.Json;
 
 namespace BetterWaywo
@@ -14,73 +15,156 @@ namespace BetterWaywo
         public static int ThreadId;
         public static string OutputFile;
 
+        private static List<Post> _posts; 
+
         public static void Main(string[] args)
         {
-            if (args.Length < 2)
+            bool help = false;
+            bool cache = false;
+            int postCount = 20;
+
+            #region Option Parsing
+            var options = new OptionSet()
             {
-                Console.WriteLine("Usage: BetterWaywo <ThreadId> <OutputFile> [PostCount]");
+                { "thread=",
+                    "thread ID to generate highlights for", v =>
+                    {
+                        if (!int.TryParse(v, out ThreadId))
+                            throw new OptionException("thread must be given an integer", "thread");
+                    } },
+
+                { "out=",
+                    "file to output to", 
+                    v => OutputFile = v },
+
+                { "posts=",
+                    "number of posts to output (default 20)", v =>
+                    {
+                        if (!int.TryParse(v, out postCount))
+                            throw new OptionException("posts must be given an integer value", "posts");
+                    }},
+
+                { "cache", 
+                    "enable caching of thread data",
+                    v => cache = v != null },
+
+                { "h|help",
+                    "show this help message",
+                    v => help = v != null }
+            };
+
+            try
+            {
+                options.Parse(args);
+            }
+            catch (OptionException e)
+            {
+                Console.WriteLine("error: " + e.Message);
+                Console.WriteLine("Try `betterwaywo --help' for more information.");
                 return;
             }
 
-            if (!int.TryParse(args[0], out ThreadId))
+            if (ThreadId == default(int) || OutputFile == default(string))
             {
-                Console.WriteLine("Invalid ThreadId");
-                return;
+                help = true;
             }
 
-            OutputFile = args[1];
-
-            int postCount;
-            if (args.Length < 3 || !int.TryParse(args[2], out postCount))
-                postCount = 20;
+            if (help)
+            {
+                Console.WriteLine("Usage: betterwaywo -thread=<ThreadID> -out=<OutputFile> [options]");
+                Console.WriteLine("Generates highlights for Facepunch threads.");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                options.WriteOptionDescriptions(Console.Out);
+                return;
+            }
+            #endregion
 
             postCount = postCount < 1 ? 1 : postCount;
 
-            int pageCount;
-            List<Post> posts;
+            var cacheFile = string.Format("posts_{0}.json", ThreadId);
+            var hasCache = cache && File.Exists(cacheFile);
+
+            if (hasCache)
+            {
+                try
+                {
+                    _posts = JsonConvert.DeserializeObject<List<Post>>(File.ReadAllText(cacheFile));
+                    Console.WriteLine("Using cached posts");
+                }
+                catch
+                {
+                    Console.WriteLine("Failed to read cache, ignoring");
+                }
+            }
+
+            if (_posts == null)
+            {
+                int pageCount;
+                try
+                {
+                    pageCount = Scraper.GetPageCount();
+                    Console.WriteLine("Thread has {0} pages", pageCount);
+                }
+                catch
+                {
+                    Console.WriteLine("Invalid ThreadId (couldn't get page count)");
+                    return;
+                }
+
+                try
+                {
+                    _posts = Scraper.GetThreadPosts(pageCount);
+                }
+                catch
+                {
+                    Console.WriteLine("Failed to scrape thread");
+                    return;
+                }
+            }
+
+            List<Post> highlights;
 
             try
             {
-                pageCount = Scraper.GetPageCount();
-                Console.WriteLine("Thread has {0} pages", pageCount);
+                highlights = _posts
+                    .OrderByDescending(p => p.RatingsValue)
+                    .Take(postCount * 2)                       // lets not read every posts' contents
+                    .OrderByDescending(p => p.RatingsValue * p.ContentMultiplier)
+                    .GroupBy(p => p.Username)
+                    .Select(g => g.First())
+                    .Take(postCount)
+                    .ToList();
             }
             catch
             {
-                Console.WriteLine("Invalid ThreadId (couldn't get page count)");
+                Console.WriteLine("Failed to read posts");
                 return;
             }
 
-            try
+            if (cache)
             {
-                posts = Scraper.GetThreadPosts(pageCount);
+                try
+                {
+                    var postsJson = JsonConvert.SerializeObject(_posts);
+                    File.WriteAllText(cacheFile, postsJson);
+                    Console.WriteLine("Wrote posts to cache");
+                }
+                catch
+                {
+                    Console.WriteLine("Failed to write cache, ignoring");
+                }
             }
-            catch
-            {
-                Console.WriteLine("Failed to get posts");
-                return;
-            }
-
-            /*var postsJson = JsonConvert.SerializeObject(posts);
-            File.WriteAllText("posts.json", postsJson);*/
-
-            //posts = JsonConvert.DeserializeObject<List<Post>>(File.ReadAllText("posts.json"));
-
-            posts = posts.OrderByDescending(p => p.RatingsValue)
-                         .Take(postCount * 2)                       // lets not read every posts' contents
-                         .OrderByDescending(p =>  p.RatingsValue * p.ContentValue)
-                         .Distinct(new PostUsernameComparer())      // one highlight per person
-                         .Take(postCount)
-                         .ToList();
 
             try
             {
                 using (var writer = new StreamWriter(OutputFile, false))
                 {
-                    foreach (var p in posts)
+                    foreach (var p in highlights)
                     {
                         if (p.Message.Length == 0)
                         {
-                            Console.WriteLine("Failed to read post contents");
+                            Console.WriteLine("Failed to read post contents (length is 0)");
                             return;
                         }
 
@@ -93,22 +177,10 @@ namespace BetterWaywo
             catch
             {
                 Console.WriteLine("Failed to write output file");
+                return;
             }
 
             Console.WriteLine("Done!");
-        }
-    }
-
-    class PostUsernameComparer : IEqualityComparer<Post>
-    {
-        public bool Equals(Post x, Post y)
-        {
-            return x.Username == y.Username;
-        }
-
-        public int GetHashCode(Post p)
-        {
-            return p.Username.GetHashCode();
         }
     }
 }
