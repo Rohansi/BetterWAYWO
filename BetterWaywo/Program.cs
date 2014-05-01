@@ -130,6 +130,7 @@ namespace BetterWaywo
                 highlights = _posts
                     .OrderByDescending(p => p.RatingsValue)
                     .Take(postCount * 2)                       // lets not read every posts' contents
+                    .Where(p => p.ContentValue > 0)
                     .OrderByDescending(p => p.RatingsValue * p.ContentMultiplier)
                     .GroupBy(p => p.Username)
                     .Select(g => g.First())
