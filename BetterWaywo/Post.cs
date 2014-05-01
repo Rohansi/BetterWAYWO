@@ -14,7 +14,7 @@ namespace BetterWaywo
     {
         private static readonly Regex ContentRegex = new Regex(@"\[(img|vid|media|video)[^\]]*?\]([^\[\]]*?)\[/\1\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex VoteImgRegex = new Regex(@"\[img\]http://www\.facepunch\.com/fp/ratings/\S+?\.png\[/img\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex VoteNameRegex = new Regex(@"agree|disagree|funny|winner|zing|informative|friendly|useful|programming king|optimistic|artistic|late|dumb", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex VoteNameRegex = new Regex(@"agree|disagree|funny|winner|zing|informative|friendly|useful|programming king|optimistic|artistic|late|dumb|lua king|lua helper", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private float? _ratingsValue;
         private float? _contentValue;
