@@ -13,10 +13,13 @@ namespace BetterWaywo
     class Post
     {
         private static readonly Regex ContentRegex = new Regex(@"\[(img|vid|media|video)[^\]]*?\]([^\[\]]*?)\[/\1\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex VoteImgRegex = new Regex(@"\[img\]http://www\.facepunch\.com/fp/ratings/\S+?\.png\[/img\]", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex VoteNameRegex = new Regex(@"agree|disagree|funny|winner|zing|informative|friendly|useful|programming king|optimistic|artistic|late|dumb", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private float? _ratingsValue;
         private float? _contentValue;
         private string _message;
+        private bool? _isVotePost;
         private string _username;
 
         public readonly int Id;
@@ -30,6 +33,29 @@ namespace BetterWaywo
                 if (!_ratingsValue.HasValue)
                     _ratingsValue = Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
                 return _ratingsValue.Value;
+            }
+        }
+
+        public string Message
+        {
+            get
+            {
+                if (_message == null)
+                    _message = GetPostContents(Id);
+                return _message;
+            }
+            set
+            {
+                _message = value;
+            }
+        }
+
+        [JsonIgnore]
+        public bool HasContent
+        {
+            get
+            {
+                return ContentValue > 0;
             }
         }
 
@@ -61,17 +87,25 @@ namespace BetterWaywo
             }
         }
 
-        public string Message
+        [JsonIgnore]
+        public bool IsVotePost
         {
             get
             {
-                if (_message == null)
-                    _message = GetPostContents(Id);
-                return _message;
-            }
-            set
-            {
-                _message = value;
+                if (!_isVotePost.HasValue)
+                {
+                    var hasVoteImages = VoteImgRegex.IsMatch(Message);
+                    var hasVoteText = VoteNameRegex
+                        .Matches(Message)
+                        .Cast<Match>()
+                        .GroupBy(m => m.Value)
+                        .Select(g => g.First())
+                        .Count() >= 2;
+
+                    _isVotePost = hasVoteImages || hasVoteText;
+                }
+
+                return _isVotePost.Value;
             }
         }
 
@@ -83,15 +117,6 @@ namespace BetterWaywo
                 if (_username == null)
                     _username = Regex.Match(Message, @"\[QUOTE=(.*?);").Groups[1].Value;
                 return _username;
-            }
-        }
-
-        [JsonIgnore]
-        public bool HasContent
-        {
-            get
-            {
-                return ContentValue > 0;
             }
         }
 

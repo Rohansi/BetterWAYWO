@@ -131,6 +131,7 @@ namespace BetterWaywo
                     .OrderByDescending(p => p.RatingsValue)
                     .Take(postCount * 2)                       // lets not read every posts' contents
                     .Where(p => p.ContentValue > 0)
+                    .Where(p => !p.IsVotePost)
                     .OrderByDescending(p => p.RatingsValue * p.ContentMultiplier)
                     .GroupBy(p => p.Username)
                     .Select(g => g.First())
