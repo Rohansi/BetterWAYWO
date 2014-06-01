@@ -196,33 +196,46 @@ namespace BetterWaywo
         {
             Console.WriteLine("Reading post {0}", postId);
 
-            using (var request = new WebClient())
-            {
-                var values = new NameValueCollection();
-                values["do"] = "getquotes";
-                values["p"] = postId.ToString("D");
+            var request = Scraper.CreateRequest(String.Format("http://facepunch.com/ajax.php?do=getquotes&p={0}", postId));
+            request.Method = "POST";
 
-                var response = Program.FacepunchEncoding.GetString(request.UploadValues(string.Format("http://facepunch.com/ajax.php?do=getquotes&p={0}", postId), values));
-                var lines = response.Split('\n');
+            var values = new NameValueCollection();
+            values["do"] = "getquotes";
+            values["p"] = postId.ToString("D");
 
-                var result = new StringBuilder();
-                for (var i = 0; i < lines.Length; i++)
-                {
-                    var line = lines[i];
+            request.ContentType = "application/x-www-form-urlencoded";
 
-                    if (i == 0 || i >= lines.Length - 3)
-                        continue;
-
-                    if (i == 1)
-                        result.Append(line.Substring(17));
-                    else
-                        result.Append(line);
-
-                    result.Append('\n');
-                }
-
-                return result.ToString().Trim();
+            using (var stream = new StreamWriter(request.GetRequestStream())) {
+                stream.Write("do=getquotes&p={0}", postId);
             }
+
+            var text = String.Empty;
+
+            using (var response = request.GetResponse()) {
+                using (var stream = new StreamReader(response.GetResponseStream(), Program.FacepunchEncoding)) {
+                    text = stream.ReadToEnd();
+                }
+            }
+
+            var lines = text.Split('\n');
+
+            var result = new StringBuilder();
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+
+                if (i == 0 || i >= lines.Length - 3)
+                    continue;
+
+                if (i == 1)
+                    result.Append(line.Substring(17));
+                else
+                    result.Append(line);
+
+                result.Append('\n');
+            }
+
+            return result.ToString().Trim();
         }
     }
 }

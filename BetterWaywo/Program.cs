@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using NDesk.Options;
 using Newtonsoft.Json;
@@ -10,18 +11,48 @@ namespace BetterWaywo
 {
     class Program
     {
+        class Config
+        {
+            public String UserAgent { get; set; }
+
+            public Dictionary<String, String> Cookies { get; set; }
+        }
+
         public static readonly Encoding FacepunchEncoding = Encoding.GetEncoding("Windows-1252");
 
         public static int ThreadId;
         public static string OutputFile;
 
+        public static CookieContainer AuthCookies;
+        public static String UserAgent;
+
         private static List<Post> _posts; 
+
+        static void LoadConfig(String path)
+        {
+            if (!File.Exists(path)) {
+                throw new Exception("Could not find config file.");
+            }
+
+            var config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(path));
+
+            UserAgent = config.UserAgent;
+            
+            var uri = new Uri("http://facepunch.com/");
+
+            foreach (var cookie in config.Cookies) {
+                AuthCookies.Add(uri, new Cookie(cookie.Key, cookie.Value));
+            }
+        }
 
         public static void Main(string[] args)
         {
             bool help = false;
             bool cache = false;
             int postCount = 20;
+
+            AuthCookies = new CookieContainer();
+            UserAgent = "BetterWaywo highlight generator";
 
             #region Option Parsing
             var options = new OptionSet()
@@ -43,6 +74,10 @@ namespace BetterWaywo
                         if (!int.TryParse(v, out postCount))
                             throw new OptionException("posts must be given an integer value", "posts");
                     }},
+
+                { "config=",
+                    "specify a json file to load configuration options from",
+                    LoadConfig },
 
                 { "cache", 
                     "enable caching of thread data",

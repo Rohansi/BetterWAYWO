@@ -69,15 +69,24 @@ namespace BetterWaywo
             return int.Parse(lastPage);
         }
 
+        public static HttpWebRequest CreateRequest(string address)
+        {
+            var request = (HttpWebRequest) WebRequest.Create(address);
+            request.KeepAlive = true;
+            request.Timeout = 15000;
+
+            request.CookieContainer = Program.AuthCookies;
+            request.UserAgent = Program.UserAgent;
+            request.ContentType = "text/html";
+
+            return request;
+        }
+
         private static HtmlDocument GetHtmlDocument(string address)
         {
             var html = new HtmlDocument();
 
-            var request = (HttpWebRequest)WebRequest.Create(address);
-            request.KeepAlive = true;
-            request.Timeout = 15000;
-
-            using (var response = request.GetResponse())
+            using (var response = CreateRequest(address).GetResponse())
             using (var reader = new StreamReader(response.GetResponseStream(), Program.FacepunchEncoding))
                 html.Load(reader);
 
