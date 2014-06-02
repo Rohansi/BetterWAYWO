@@ -75,8 +75,8 @@ namespace BetterWaywo
             request.KeepAlive = true;
             request.Timeout = 15000;
 
-            request.CookieContainer = Program.AuthCookies;
-            request.UserAgent = Program.UserAgent;
+            request.CookieContainer = Program.Config.Authentication.CookieContainer;
+            request.UserAgent = Program.Config.Authentication.UserAgent;
             request.ContentType = "text/html";
 
             return request;

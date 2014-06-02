@@ -1,9 +1,58 @@
 ﻿{
-    "UserAgent" : "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko",
-    "Cookies" :
+    "Authentication" :
     {
-        "__cfduid" : "",
-        "bb_sessionhash" : "",
-        "cf_clearance" : ""
+        "UserAgent" : "Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko",
+        "Cookies" :
+        {
+            "__cfduid" : "",
+            "bb_sessionhash" : "",
+            "cf_clearance" : ""
+        }
+    },
+    
+    "Weights" :
+    {
+        "RatingsDefault" : "-1",
+        "Ratings" :
+        [
+            { "Score" : "3", "Labels" :
+                [
+                    "Programming King",
+                    "Lua King"
+                ]
+            },
+
+            { "Score" : "2", "Labels" :
+                [
+                    "Winner",
+                    "Useful",
+                    "Artistic",
+                    "Lua Helper"
+                ]
+            },
+
+            { "Score" : "1", "Labels" :
+                [
+                    "Funny",
+                    "Informative"
+                ]
+            }
+        ],
+        
+        "ContentDefault" : "0",
+        "Content" :
+        [
+            { "Score" : "1.5", "Extensions" : [ ".gif" ], "Tags" : [ "img" ] },
+
+            { "Score" : "1", "Tags" : [ "img" ] },
+
+            { "Score" : "2", "Tags" :
+                [
+                    "vid",
+                    "media",
+                    "video"
+                ]
+            }
+        ]
     }
 }

@@ -11,20 +11,12 @@ namespace BetterWaywo
 {
     class Program
     {
-        class Config
-        {
-            public String UserAgent { get; set; }
-
-            public Dictionary<String, String> Cookies { get; set; }
-        }
-
         public static readonly Encoding FacepunchEncoding = Encoding.GetEncoding("Windows-1252");
 
         public static int ThreadId;
         public static string OutputFile;
 
-        public static CookieContainer AuthCookies;
-        public static String UserAgent;
+        public static Config Config;
 
         private static List<Post> _posts; 
 
@@ -34,15 +26,7 @@ namespace BetterWaywo
                 throw new Exception("Could not find config file.");
             }
 
-            var config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(path));
-
-            UserAgent = config.UserAgent;
-            
-            var uri = new Uri("http://facepunch.com/");
-
-            foreach (var cookie in config.Cookies) {
-                AuthCookies.Add(uri, new Cookie(cookie.Key, cookie.Value));
-            }
+            Config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(path));
         }
 
         public static void Main(string[] args)
@@ -51,8 +35,20 @@ namespace BetterWaywo
             bool cache = false;
             int postCount = 20;
 
-            AuthCookies = new CookieContainer();
-            UserAgent = "BetterWaywo highlight generator";
+            Config = new Config {
+                Authentication = new AuthenticationConfig {
+                    UserAgent = "BetterWAYWO highlights generator",
+                    Cookies = new Dictionary<string, string>()
+                },
+
+                Weights = new WeightsConfig {
+                    RatingsDefault = 0f,
+                    Ratings = new RatingsConfig[0],
+
+                    ContentDefault = 0f,
+                    Content = new ContentConfig[0]
+                }
+            };
 
             #region Option Parsing
             var options = new OptionSet()

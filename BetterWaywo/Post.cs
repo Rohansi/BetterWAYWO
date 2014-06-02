@@ -31,7 +31,7 @@ namespace BetterWaywo
             get
             {
                 if (!_ratingsValue.HasValue)
-                    _ratingsValue = Ratings.Sum(r => GetRatingValue(r.Key) * r.Value);
+                    _ratingsValue = Ratings.Sum(r => Program.Config.Weights.GetRatingValue(r.Key) * r.Value);
                 return _ratingsValue.Value;
             }
         }
@@ -65,7 +65,7 @@ namespace BetterWaywo
             get
             {
                 if (!_contentValue.HasValue)
-                    _contentValue = GetContentValue(Message);
+                    _contentValue = GetMessageValue(Message);
                 return _contentValue.Value;
             }
         }
@@ -136,60 +136,21 @@ namespace BetterWaywo
             return _message != null;
         }
 
-        public static float GetContentValue(string message)
+        public static float GetMessageValue(string message)
         {
             float value = 0;
 
             var contentTags = ContentRegex.Matches(message);
             foreach (var tag in contentTags.Cast<Match>())
             {
-                switch (tag.Groups[1].Value.ToLower())
-                {
-                    case "img":
-                    {
-                        var isGif = false;
+                var tagString = tag.Groups[1].Value.ToLower();
+                Uri uri;
+                Uri.TryCreate(tag.Groups[2].Value, UriKind.Absolute, out uri);
 
-                        Uri uri;
-                        if (Uri.TryCreate(tag.Groups[2].Value, UriKind.Absolute, out uri))
-                            isGif = Path.GetExtension(uri.LocalPath).ToLower() == ".gif";
-
-                        if (isGif)
-                            value += 1.50f;
-                        else
-                            value += 1.00f;
-
-                        break;
-                    }
-
-                    case "vid":
-                    case "media":
-                    case "video":
-                        value += 2.00f;
-                        break;
-                }
+                value += Program.Config.Weights.GetContentValue(tagString, uri);
             }
 
             return value;
-        }
-
-        private static float GetRatingValue(string rating)
-        {
-            switch (rating)
-            {
-                case "Programming King":
-                case "Lua King":
-                    return 3.0f;
-                case "Winner":
-                case "Useful":
-                case "Artistic":
-                case "Lua Helper":
-                    return 2.0f;
-                case "Funny":
-                case "Informative":
-                    return 1.0f;
-                default:
-                    return -1.0f; // "junk" ratings
-            }
         }
 
         private static string GetPostContents(int postId)
