@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
 using Newtonsoft.Json;
 
 namespace BetterWaywo
@@ -157,23 +158,44 @@ namespace BetterWaywo
         {
             Console.WriteLine("Reading post {0}", postId);
 
-            var request = Scraper.CreateRequest(String.Format("http://facepunch.com/ajax.php?do=getquotes&p={0}", postId));
+            var request = Scraper.CreateRequest(string.Format("http://facepunch.com/ajax.php?do=getquotes&p={0}", postId));
             request.Method = "POST";
+
+            request.ContentType = "application/x-www-form-urlencoded";
+
+            request.Headers["Origin"] = "http://facepunch.com";
+            request.Headers["X-Requested-With"] = "XMLHttpRequest";
+            request.Referer = string.Format(Scraper.ThreadPostString, Program.ThreadId, postId);
 
             var values = new NameValueCollection();
             values["do"] = "getquotes";
             values["p"] = postId.ToString("D");
+            values["securitytoken"] = Program.Config.Authentication.SecurityToken;
 
-            request.ContentType = "application/x-www-form-urlencoded";
-
-            using (var stream = new StreamWriter(request.GetRequestStream())) {
-                stream.Write("do=getquotes&p={0}", postId);
+            var postDataBuilder = new StringBuilder();
+            var trail = string.Empty;
+            foreach (string key in values.AllKeys)
+            {
+                postDataBuilder.Append(trail);
+                postDataBuilder.Append(HttpUtility.UrlEncode(key));
+                postDataBuilder.Append("=");
+                postDataBuilder.Append(HttpUtility.UrlEncode(values[key]));
+                trail = "&";
             }
 
-            var text = String.Empty;
+            var postData = Encoding.UTF8.GetBytes(postDataBuilder.ToString());
+            request.ContentLength = postData.Length;
 
-            using (var response = request.GetResponse()) {
-                using (var stream = new StreamReader(response.GetResponseStream(), Program.FacepunchEncoding)) {
+            using (var stream = request.GetRequestStream())
+            {
+                stream.Write(postData, 0, postData.Length);
+            }
+
+            string text;
+            using (var response = request.GetResponse())
+            {
+                using (var stream = new StreamReader(response.GetResponseStream(), Program.FacepunchEncoding))
+                {
                     text = stream.ReadToEnd();
                 }
             }

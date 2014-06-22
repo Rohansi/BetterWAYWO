@@ -11,7 +11,8 @@ namespace BetterWaywo
 {
     static class Scraper
     {
-        private const string ThreadPageString = "http://facepunch.com/showthread.php?t={0}&page={1}";
+        public const string ThreadPageString = "http://facepunch.com/showthread.php?t={0}&page={1}";
+        public const string ThreadPostString = "http://facepunch.com/showthread.php?t={0}&p={1}";
 
         public static List<Post> GetThreadPosts(int pageCount)
         {
@@ -71,7 +72,7 @@ namespace BetterWaywo
 
         public static HttpWebRequest CreateRequest(string address)
         {
-            var request = (HttpWebRequest) WebRequest.Create(address);
+            var request = (HttpWebRequest)WebRequest.Create(address);
             request.KeepAlive = true;
             request.Timeout = 15000;
 

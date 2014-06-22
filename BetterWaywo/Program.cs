@@ -18,11 +18,12 @@ namespace BetterWaywo
 
         public static Config Config;
 
-        private static List<Post> _posts; 
+        private static List<Post> _posts;
 
-        static void LoadConfig(String path)
+        static void LoadConfig(string path)
         {
-            if (!File.Exists(path)) {
+            if (!File.Exists(path))
+            {
                 throw new Exception("Could not find config file.");
             }
 
@@ -35,13 +36,16 @@ namespace BetterWaywo
             bool cache = false;
             int postCount = 20;
 
-            Config = new Config {
-                Authentication = new AuthenticationConfig {
+            Config = new Config
+            {
+                Authentication = new AuthenticationConfig
+                {
                     UserAgent = "BetterWAYWO highlights generator",
                     Cookies = new Dictionary<string, string>()
                 },
 
-                Weights = new WeightsConfig {
+                Weights = new WeightsConfig
+                {
                     RatingsDefault = 0f,
                     Ratings = new RatingsConfig[0],
 
